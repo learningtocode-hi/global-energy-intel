@@ -1,0 +1,320 @@
+@import url('https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500;600&display=swap');
+@import 'mapbox-gl/dist/mapbox-gl.css';
+
+:root {
+  --background: #000000;
+  --foreground: #f4f4f5;
+  --panel-bg: rgba(15, 15, 15, 0.90);
+  --panel-border: rgba(161, 161, 170, 0.3); /* Light gray border */
+  --accent-cyan: #22d3ee;
+  --accent-red: #f87171;
+  --accent-orange: #fb923c;
+  --accent-yellow: #facc15;
+  --accent-green: #4ade80;
+  
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Rajdhani', sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  margin: 0;
+  padding: 0;
+  overflow: hidden; /* App is a full-screen dashboard */
+}
+
+/* Custom tactical scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 2px; }
+::-webkit-scrollbar-thumb:hover { background: #52525b; }
+
+/* Base Utility Classes replacing Tailwind since it was disabled */
+.flex { display: flex; }
+.flex-col { flex-direction: column; }
+.flex-row { flex-direction: row; }
+.flex-1 { flex: 1; }
+.items-center { align-items: center; }
+.justify-between { justify-content: space-between; }
+.justify-center { justify-content: center; }
+.h-screen { height: 100vh; }
+.w-full { width: 100%; }
+.h-full { height: 100%; }
+
+/* Typography */
+.text-xs { font-size: 0.75rem; line-height: 1rem; }
+.text-sm { font-size: 0.875rem; line-height: 1.25rem; }
+.text-base { font-size: 1rem; line-height: 1.5rem; }
+.text-lg { font-size: 1.125rem; line-height: 1.75rem; }
+.text-xl { font-size: 1.25rem; line-height: 1.75rem; }
+.font-bold { font-weight: 700; }
+.font-semibold { font-weight: 600; }
+.font-medium { font-weight: 500; }
+.uppercase { text-transform: uppercase; }
+.tracking-wider { letter-spacing: 0.05em; }
+.font-display { font-family: var(--font-display); }
+
+/* Spacing */
+.p-2 { padding: 0.5rem; }
+.p-4 { padding: 1rem; }
+.px-4 { padding-left: 1rem; padding-right: 1rem; }
+.py-2 { padding-top: 0.5rem; padding-bottom: 0.5rem; }
+.m-0 { margin: 0; }
+.mb-2 { margin-bottom: 0.5rem; }
+.mb-4 { margin-bottom: 1rem; }
+.mt-4 { margin-top: 1rem; }
+.gap-2 { gap: 0.5rem; }
+.gap-4 { gap: 1rem; }
+
+/* Colors & Components */
+.text-muted { color: #94a3b8; }
+.text-cyan { color: var(--accent-cyan); }
+.text-red { color: var(--accent-red); }
+.bg-cyan { background-color: var(--accent-cyan); }
+
+/* Sci-Fi UI Borders and Panels */
+.panel {
+  background: var(--panel-bg);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--panel-border);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.8);
+  position: relative;
+}
+
+.panel::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 10px; height: 10px;
+  border-top: 2px solid rgba(161, 161, 170, 0.8);
+  border-left: 2px solid rgba(161, 161, 170, 0.8);
+}
+.panel::after {
+  content: '';
+  position: absolute;
+  bottom: 0; right: 0;
+  width: 10px; height: 10px;
+  border-bottom: 2px solid rgba(161, 161, 170, 0.8);
+  border-right: 2px solid rgba(161, 161, 170, 0.8);
+}
+
+/* CRT Scanline Effect (bloomberg / tactical aesthetic polish) */
+.scanlines {
+  position: absolute;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: linear-gradient(
+    rgba(18, 16, 16, 0) 50%,
+    rgba(0, 0, 0, 0.15) 50%
+  );
+  background-size: 100% 3px;
+  z-index: 10;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: flicker 0.15s infinite;
+}
+
+@keyframes flicker {
+  0% { opacity: 0.95; }
+  100% { opacity: 0.9; }
+}
+
+.impact-badge {
+  display: inline-flex;
+  padding: 0.125rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  border-radius: 2px;
+}
+.impact-badge.high, .impact-badge.critical {
+  background: rgba(239, 68, 68, 0.2);
+  color: var(--accent-red);
+  border: 1px solid var(--accent-red);
+}
+.impact-badge.medium {
+  background: rgba(234, 179, 8, 0.2);
+  color: var(--accent-yellow);
+  border: 1px solid var(--accent-yellow);
+}
+.impact-badge.low {
+  background: rgba(14, 165, 233, 0.2);
+  color: var(--accent-cyan);
+  border: 1px solid var(--accent-cyan);
+}
+
+.map-container {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 0;
+}
+
+/* Hide Mapbox branding */
+.mapboxgl-ctrl-logo, .mapboxgl-ctrl-attrib { display: none !important; }
+
+/* Mapbox Marker Customization */
+.mapboxgl-marker {
+  cursor: pointer;
+}
+
+/* === RADAR PING MARKER SYSTEM === */
+.radar-marker {
+  position: relative;
+  width: 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Central dot — the actual event point */
+.radar-core {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent-red);
+  box-shadow: 0 0 6px var(--accent-red), 0 0 12px var(--accent-red);
+  z-index: 3;
+  position: absolute;
+}
+
+/* Expanding sonar rings */
+.radar-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1.5px solid var(--accent-red);
+  opacity: 0;
+  width: 8px;
+  height: 8px;
+  animation: radarPing 2.5s cubic-bezier(0, 0.2, 0.8, 1) infinite;
+}
+
+.radar-ring.ring-2 {
+  animation-delay: 0.8s;
+}
+
+.radar-ring.ring-3 {
+  animation-delay: 1.6s;
+}
+
+/* Severity color overrides */
+.radar-marker.critical .radar-core {
+  background: var(--accent-red);
+  box-shadow: 0 0 6px var(--accent-red), 0 0 14px var(--accent-red);
+}
+.radar-marker.critical .radar-ring {
+  border-color: var(--accent-red);
+}
+
+.radar-marker.high .radar-core {
+  background: var(--accent-orange);
+  box-shadow: 0 0 6px var(--accent-orange), 0 0 14px var(--accent-orange);
+}
+.radar-marker.high .radar-ring {
+  border-color: var(--accent-orange);
+}
+
+.radar-marker.medium .radar-core {
+  background: var(--accent-yellow);
+  box-shadow: 0 0 5px var(--accent-yellow), 0 0 10px var(--accent-yellow);
+}
+.radar-marker.medium .radar-ring {
+  border-color: var(--accent-yellow);
+}
+
+.radar-marker.low .radar-core {
+  background: var(--accent-cyan);
+  box-shadow: 0 0 4px var(--accent-cyan), 0 0 8px var(--accent-cyan);
+}
+.radar-marker.low .radar-ring {
+  border-color: var(--accent-cyan);
+  animation-duration: 3.5s; /* slower ping for low severity */
+}
+
+/* The actual sonar expansion animation — safe to use transform here since
+   these are CHILD elements, not the mapboxgl-marker wrapper */
+@keyframes radarPing {
+  0% {
+    width: 8px;
+    height: 8px;
+    opacity: 0.8;
+  }
+  100% {
+    width: 50px;
+    height: 50px;
+    opacity: 0;
+  }
+}
+
+.btn {
+  background: transparent;
+  color: var(--accent-cyan);
+  border: 1px solid var(--accent-cyan);
+  padding: 0.5rem 1rem;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-transform: uppercase;
+}
+.btn:hover {
+  background: rgba(14, 165, 233, 0.1);
+  box-shadow: 0 0 10px rgba(14, 165, 233, 0.4);
+}
+
+/* Pipeline hover popup */
+.pipeline-popup .mapboxgl-popup-content {
+  background: rgba(0, 0, 0, 0.85);
+  color: #e4e4e7;
+  font-family: var(--font-sans);
+  font-size: 0.7rem;
+  padding: 8px 12px;
+  border: 1px solid rgba(34, 211, 238, 0.3);
+  border-radius: 2px;
+  box-shadow: 0 0 12px rgba(34, 211, 238, 0.15);
+}
+.pipeline-popup .mapboxgl-popup-tip {
+  border-top-color: rgba(0, 0, 0, 0.85);
+}
+
+/* Oil Price Ticker */
+.price-ticker {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 400px;
+  z-index: 15;
+  background: rgba(0, 0, 0, 0.6);
+  border-top: 1px solid #27272a;
+  padding: 6px 16px;
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  align-items: center;
+  font-family: var(--font-sans);
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  pointer-events: none;
+}
+.price-ticker .ticker-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.price-ticker .ticker-label {
+  color: #71717a;
+  text-transform: uppercase;
+}
+.price-ticker .ticker-value {
+  color: #e4e4e7;
+  font-weight: 600;
+}
+.price-ticker .ticker-change.up { color: var(--accent-green); }
+.price-ticker .ticker-change.down { color: var(--accent-red); }
