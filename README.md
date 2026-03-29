@@ -1,6 +1,6 @@
 # Global Energy Intel
 
-![Vanguard Global Operating Picture](public/window.svg) <!-- Replace with an actual screenshot if you have one -->
+![Vanguard Global Operating Picture](public/dashboard.png)
 
 Global Energy Intel is a high-fidelity, tactical geospatial intelligence platform designed for monitoring global energy infrastructure threats. Built with a minimalist "Palantir Gotham" aesthetic, it ingests real-time news data, processes it via AI to determine geographic coordinates and impact severity, and visualizes the results on an interactive 3D globe.
 
