@@ -62,9 +62,9 @@ export default function Home() {
         {/* Top-left: Brand mark */}
         <div style={{ position: 'absolute', top: '16px', left: '16px' }}>
           <h1 className="font-display font-bold tracking-wider m-0" style={{ fontSize: '0.8rem', opacity: 0.85, letterSpacing: '0.15em' }}>
-            <span className="text-cyan">GEO</span>
-            <span style={{ color: '#a1a1aa' }}>INTELLIGENCE</span>
-            <span className="text-red">ALPHA</span>
+            <span className="text-cyan">GLOBAL</span>
+            <span style={{ color: '#a1a1aa' }}> ENERGY</span>
+            <span className="text-red"> INTEL</span>
           </h1>
         </div>
 

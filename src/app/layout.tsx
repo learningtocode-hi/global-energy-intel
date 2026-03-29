@@ -4,8 +4,8 @@ import './globals.css';
 // import 'mapbox-gl/dist/mapbox-gl.css';
 
 export const metadata: Metadata = {
-  title: 'Global Energy Intelligence',
-  description: 'Geospatial Operating Picture',
+  title: 'Global Energy Intel',
+  description: 'Tactical Energy Intelligence Platform',
 };
 
 export default function RootLayout({
