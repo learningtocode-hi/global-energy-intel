@@ -318,3 +318,43 @@ body {
 }
 .price-ticker .ticker-change.up { color: var(--accent-green); }
 .price-ticker .ticker-change.down { color: var(--accent-red); }
+
+/* Radar Ping Hitbox & Hover Prioritization */
+.radar-marker {
+  position: relative;
+  cursor: pointer;
+  z-index: 9999 !important; /* Always sits above Mapbox Canvas lines */
+}
+
+.radar-marker::after {
+  content: '';
+  position: absolute;
+  top: -20px;
+  left: -20px;
+  right: -20px;
+  bottom: -20px;
+  border-radius: 50%;
+  pointer-events: auto; /* Massive invisible hitbox around the marker */
+  background: transparent;
+  z-index: 10000;
+}
+
+.radar-marker:hover .radar-core {
+  background: #ffffff;
+  box-shadow: 0 0 15px #ffffff, 0 0 30px var(--accent-cyan);
+}
+
+/* Custom Radar Popup Styling */
+.radar-popup .mapboxgl-popup-content {
+  background: rgba(10, 10, 14, 0.95);
+  border: 1px solid var(--accent-cyan);
+  box-shadow: 0 0 20px rgba(34, 211, 238, 0.2);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 10px 14px;
+  border-radius: 2px;
+  pointer-events: none; /* Let hover pass through */
+}
+.radar-popup .mapboxgl-popup-tip {
+  border-top-color: var(--accent-cyan);
+}

@@ -33,10 +33,23 @@ export async function processIntelligenceFeed(rawText: string, adminSecret?: str
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
 
+    // Fetch active incidents for context
+    const { data: activeIncidents } = await supabaseAdmin
+      .from("vw_intelligence_events")
+      .select("id, title, summary")
+      .order("timestamp", { ascending: false })
+      .limit(30);
+
+    const activeIncidentsText = activeIncidents?.length 
+      ? `\n\nACTIVE INCIDENTS (ID: Title - Summary):\n${activeIncidents.map(i => `[${i.id}] ${i.title} - ${i.summary}`).join('\n')}`
+      : "";
+
     // Define exactly what we want OpenAI to return us
     const EventSchema = z.object({
-      title: z.string().describe("Short punchy headline of the global event"),
-      summary: z.string().describe("1-2 sentence detailed summary of what happened"),
+      is_update: z.boolean().describe("True if this news is just an update to an existing ACTIVE INCIDENT, False if it is a NEW incident."),
+      matched_incident_id: z.string().describe("If is_update is True, provide the EXACT ID of the active incident. If False, leave as empty string."),
+      title: z.string().describe("Short punchy headline. If update, summarize the update headline."),
+      summary: z.string().describe("1-2 sentence detailed summary of what happened. If update, summarize what NEW information this update adds."),
       longitude: z.number().describe("The exact longitude coordinates of the event"),
       latitude: z.number().describe("The exact latitude coordinates of the event"),
       impact_level: z.enum(['CRITICAL', 'HIGH', 'MEDIUM', 'LOW']).describe("Severity of the event"),
@@ -56,7 +69,7 @@ export async function processIntelligenceFeed(rawText: string, adminSecret?: str
       messages: [
         {
           role: "system",
-          content: "You are an elite energy analyst and geospatial geocoding system. You will receive raw news fragments. Extract the disruption event, determine the exact lat/long coordinates of the event. Output strictly matching the requested JSON format."
+          content: "You are an elite energy analyst and geospatial geocoding system. You will receive raw news fragments. Extract the disruption event, determine the exact lat/long coordinates. If the news matches an ACTIVE INCIDENT below, mark it as an update, provide the ID, and write the summary focusing solely on the new developments. Output strictly matching the requested JSON format." + activeIncidentsText
         },
         {
           role: "user",
@@ -74,7 +87,31 @@ export async function processIntelligenceFeed(rawText: string, adminSecret?: str
     
     const parsedEvent = JSON.parse(parsedEventString);
 
-    // Insert into Supabase (Need to format standard latitude/longitude back into PostGIS POINT)
+    // Handle updates to existing incidents
+    if (parsedEvent.is_update && parsedEvent.matched_incident_id) {
+       const { data: existingEvent, error: fetchError } = await supabaseAdmin
+         .from("intelligence_events")
+         .select("updates")
+         .eq("id", parsedEvent.matched_incident_id)
+         .single();
+         
+       if (!fetchError && existingEvent) {
+          const newUpdate = {
+             text: parsedEvent.summary,
+             date: parsedEvent.event_date ? new Date(parsedEvent.event_date).toISOString() : new Date().toISOString()
+          };
+          const updatedUpdates = [...(existingEvent.updates || []), newUpdate];
+          
+          await supabaseAdmin
+            .from("intelligence_events")
+            .update({ updates: updatedUpdates })
+            .eq("id", parsedEvent.matched_incident_id);
+            
+          return { success: true, eventTitle: `[UPDATE] ${parsedEvent.title}` };
+       }
+    }
+
+    // Insert into Supabase for NEW incidents
     const postgisPoint = `POINT(${parsedEvent.longitude} ${parsedEvent.latitude})`;
 
     const { data, error } = await supabaseAdmin

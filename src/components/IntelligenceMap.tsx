@@ -8,6 +8,11 @@ import { majorPipelines } from '@/data/pipelines';
 
 mapboxgl.accessToken = process.env.NEXT_PUBLIC_MAPBOX_TOKEN || '';
 
+// Global interaction lock to prevent canvas (pipelines/links) from showing popups
+// at the exact same time as DOM marker popups (Resolving the double-hover overlap UI bug)
+let globalIsRadarHovered = false;
+let floatBlockTimeout: NodeJS.Timeout;
+
 interface IntelligenceMapProps {
   events: IntelligenceEvent[];
   onSelectEvent: (event: IntelligenceEvent) => void;
@@ -111,6 +116,7 @@ export default function IntelligenceMap({ events, onSelectEvent, selectedEvent }
     });
 
     m.on('mouseenter', 'pipeline-hitbox', (e) => {
+      if (globalIsRadarHovered) return;
       m.getCanvas().style.cursor = 'pointer';
       const props = e.features?.[0]?.properties;
       if (props && e.lngLat) {
@@ -121,10 +127,15 @@ export default function IntelligenceMap({ events, onSelectEvent, selectedEvent }
     });
 
     m.on('mousemove', 'pipeline-hitbox', (e) => {
+      if (globalIsRadarHovered) {
+        popup.remove();
+        return;
+      }
       if (e.lngLat) popup.setLngLat(e.lngLat);
     });
 
     m.on('mouseleave', 'pipeline-hitbox', () => {
+      if (globalIsRadarHovered) return;
       m.getCanvas().style.cursor = '';
       popup.remove();
     });
@@ -262,6 +273,7 @@ export default function IntelligenceMap({ events, onSelectEvent, selectedEvent }
       });
 
       m.on('mouseenter', 'connection-hitbox', (e) => {
+        if (globalIsRadarHovered) return;
         m.getCanvas().style.cursor = 'crosshair';
         const props = e.features?.[0]?.properties;
         if (props && e.lngLat) {
@@ -272,10 +284,15 @@ export default function IntelligenceMap({ events, onSelectEvent, selectedEvent }
       });
 
       m.on('mousemove', 'connection-hitbox', (e) => {
+        if (globalIsRadarHovered) {
+          connPopup.remove();
+          return;
+        }
         if (e.lngLat) connPopup.setLngLat(e.lngLat);
       });
 
       m.on('mouseleave', 'connection-hitbox', () => {
+        if (globalIsRadarHovered) return;
         m.getCanvas().style.cursor = '';
         connPopup.remove();
       });
@@ -311,6 +328,27 @@ export default function IntelligenceMap({ events, onSelectEvent, selectedEvent }
           .setLngLat(event.coordinates)
           .addTo(map.current!);
           
+        const markerPopup = new mapboxgl.Popup({
+          closeButton: false,
+          closeOnClick: false,
+          className: 'radar-popup',
+          offset: 15
+        }).setHTML(`<strong style="color:var(--accent-cyan); font-family:var(--font-display); letter-spacing:0.1em; text-transform:uppercase; font-size:0.75rem">${event.title}</strong><br/><span style="opacity:0.8; font-size:0.65rem">${impact.toUpperCase()} THREAT</span>`);
+        
+        el.addEventListener('mouseenter', () => {
+          globalIsRadarHovered = true; // Block lower layers immediately
+          clearTimeout(floatBlockTimeout); // Cancel any running 2sec timeouts
+          markerPopup.setLngLat(event.coordinates).addTo(map.current!);
+        });
+        
+        el.addEventListener('mouseleave', () => {
+          markerPopup.remove();
+          // The 2.0 second user-requested timeout block! Prevents ghost overlaps when moving the mouse quickly away from the ping
+          floatBlockTimeout = setTimeout(() => {
+            globalIsRadarHovered = false;
+          }, 2000); 
+        });
+
         el.addEventListener('click', () => {
           onSelectEvent(event);
         });

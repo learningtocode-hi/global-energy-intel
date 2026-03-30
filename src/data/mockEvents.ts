@@ -14,6 +14,7 @@ export interface IntelligenceEvent {
   sources: string[];
   timestamp: string;
   assetType: 'REFINERY' | 'PIPELINE' | 'TERMINAL' | 'GEOPOLITICAL' | 'WEATHER';
+  updates?: { text: string; date: string }[];
 }
 
 export const MOCK_EVENTS: IntelligenceEvent[] = [

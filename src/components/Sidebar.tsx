@@ -1,6 +1,6 @@
 "use client";
 
-import React from 'react';
+import React, { useState } from 'react';
 import { IntelligenceEvent } from '@/data/mockEvents';
 import { AlertTriangle, MapPin, Activity, ShieldAlert, Cpu, RadioTower, CloudLightning } from 'lucide-react';
 
@@ -11,6 +11,9 @@ interface SidebarProps {
 }
 
 export default function Sidebar({ events, selectedEvent, onSelectEvent }: SidebarProps) {
+  const [searchTerm, setSearchTerm] = useState('');
+  const [activeFilter, setActiveFilter] = useState('ALL');
+  const threatLevels = ['ALL', 'CRITICAL', 'HIGH', 'MEDIUM', 'LOW'];
   
   const getIcon = (type: string) => {
     switch (type) {
@@ -81,6 +84,26 @@ export default function Sidebar({ events, selectedEvent, onSelectEvent }: Sideba
               </p>
             </div>
 
+            {selectedEvent.updates && selectedEvent.updates.length > 0 && (
+              <div className="mb-6">
+                <h4 className="font-display text-red uppercase tracking-wider text-sm mb-2 border-b" style={{ borderColor: 'var(--panel-border)', paddingBottom: '0.25rem' }}>
+                  Incident Timeline
+                </h4>
+                <div className="flex flex-col gap-3">
+                  {selectedEvent.updates.map((update, i) => (
+                    <div key={i} className="pl-3 border-l-2 border-red-500" style={{ borderColor: 'var(--accent-red)' }}>
+                      <div className="text-xs font-mono text-muted mb-1">
+                        {new Date(update.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                      </div>
+                      <p className="text-sm m-0" style={{ lineHeight: '1.5', color: '#e4e4e7' }}>
+                        {update.text}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="panel mb-6" style={{ padding: '1rem', background: 'rgba(239, 68, 68, 0.05)' }}>
               <div className="flex justify-between items-center mb-3">
                 <h4 className="font-display text-red uppercase tracking-wider text-sm m-0">
@@ -143,7 +166,46 @@ export default function Sidebar({ events, selectedEvent, onSelectEvent }: Sideba
       ) : (
         /* Event Feed List */
         <div style={{ flex: 1, overflowY: 'auto' }}>
-          {events.map((event) => (
+          <div className="p-3 border-b" style={{ borderColor: 'var(--panel-border)', background: 'rgba(0,0,0,0.6)' }}>
+            <div className="flex items-center gap-2 px-2 py-1" style={{ border: '1px solid var(--panel-border)', borderRadius: '2px', background: 'rgba(34, 211, 238, 0.05)' }}>
+              <span className="font-mono text-cyan text-xs opacity-70">{'>'}</span>
+              <input 
+                type="text" 
+                placeholder="Search threat matrix... (e.g. Ukraine, Pipeline)" 
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full font-mono text-xs placeholder-muted" 
+                style={{ background: 'transparent', border: 'none', outline: 'none', color: 'var(--accent-cyan)', padding: '0.25rem 0', boxShadow: 'none' }}
+              />
+            </div>
+            
+            {/* Threat Level Filters */}
+            <div className="flex justify-between mt-2 gap-1 px-1">
+              {threatLevels.map(level => (
+                <button
+                  key={level}
+                  onClick={() => setActiveFilter(level)}
+                  className="flex-1 font-mono text-[9px] py-1 border transition-colors cursor-pointer"
+                  style={{
+                    backgroundColor: activeFilter === level ? 'rgba(34,211,238,0.1)' : 'transparent',
+                    borderColor: activeFilter === level ? 'var(--accent-cyan)' : '#27272a',
+                    color: activeFilter === level ? 'var(--accent-cyan)' : '#a1a1aa',
+                    boxShadow: activeFilter === level ? '0 0 8px rgba(34,211,238,0.2)' : 'none'
+                  }}
+                >
+                  {level}
+                </button>
+              ))}
+            </div>
+          </div>
+          {events
+            .filter(e => activeFilter === 'ALL' || e.impactLevel === activeFilter)
+            .filter(e => 
+              e.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
+              e.summary.toLowerCase().includes(searchTerm.toLowerCase()) ||
+              e.assetType.toLowerCase().includes(searchTerm.toLowerCase())
+            )
+            .map((event) => (
             <div 
               key={event.id}
               className="p-4 cursor-pointer hover:bg-slate-800/50 transition-colors"
@@ -157,6 +219,9 @@ export default function Sidebar({ events, selectedEvent, onSelectEvent }: Sideba
                 <div className="text-cyan flex items-center">
                   {getIcon(event.assetType)}
                 </div>
+              </div>
+              <div className="font-mono mb-1" style={{ fontSize: '0.65rem', color: 'var(--accent-cyan)' }}>
+                {new Date(event.timestamp).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
               </div>
               <h3 className="text-sm font-semibold m-0 mb-1 leading-snug">
                 {event.title}

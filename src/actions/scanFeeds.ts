@@ -76,37 +76,8 @@ export async function scanLiveFeeds(adminSecret?: string): Promise<ScanResult> {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
     const supabase = createClient(supabaseUrl, supabaseKey);
-    const { data: existingEvents } = await supabase.from('intelligence_events').select('title');
-    
-    // Build keyword sets for all existing events for robust matching
-    const existingKeywordSets = (existingEvents || []).map((e: any) => ({
-      title: e.title.toLowerCase(),
-      keywords: e.title.toLowerCase().split(/\s+/).filter((w: string) => w.length > 4)
-    }));
-
-    // Helper: check if an article is a duplicate (exact or reworded)
-    const isDuplicateOf = (newTitle: string) => {
-      const newLower = newTitle.toLowerCase();
-      const newKeywords = newLower.split(/\s+/).filter(w => w.length > 4);
-      
-      return existingKeywordSets.some((existing: { title: string; keywords: string[] }) => {
-        // Exact substring match
-        if (newLower.includes(existing.title) || existing.title.includes(newLower)) return true;
-        
-        // Keyword overlap: if 3+ significant words match, it's the same story reworded
-        if (newKeywords.length === 0 || existing.keywords.length === 0) return false;
-        const overlap = newKeywords.filter(w => existing.keywords.includes(w));
-        return overlap.length >= 3;
-      });
-    };
-
     // Process each article through our existing AI pipeline
     for (const article of capped) {
-      if (isDuplicateOf(article.title)) {
-        result.skipped++;
-        result.events.push({ title: article.title, status: 'skipped', message: 'Duplicate detected' });
-        continue;
-      }
       try {
         const rawText = `${article.title}. ${article.snippet}. Published: ${article.pubDate.toISOString().split('T')[0]}`;
         
@@ -114,11 +85,6 @@ export async function scanLiveFeeds(adminSecret?: string): Promise<ScanResult> {
 
         if (response?.success) {
           result.ingested++;
-          const newTitle = (response.eventTitle || article.title).toLowerCase();
-          existingKeywordSets.push({
-            title: newTitle,
-            keywords: newTitle.split(/\s+/).filter((w: string) => w.length > 4)
-          });
           result.events.push({ title: response.eventTitle || article.title, status: 'success' });
         } else {
           result.failed++;

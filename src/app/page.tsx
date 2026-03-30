@@ -26,7 +26,21 @@ export default function Home() {
       
       // Map the returned flattened longitude/latitude back into Mapbox [lng, lat] format
       if (data) {
-        const formattedEvents = data.map((event: any) => ({
+        // Build a unique geospatial index to prevent old database duplicates from stacking completely on top of each other
+        const uniqueCoords = new Map();
+        
+        data.forEach((event: any) => {
+          const key = `${event.longitude.toFixed(5)},${event.latitude.toFixed(5)}`;
+          const existing = uniqueCoords.get(key);
+          
+          // If the coordinate isn't on the map yet, OR if the new event has more timeline updates than the old one, overwrite it.
+          // This ensures the "Clustered" AI events are prioritized over old raw scraped data without us having to delete user data.
+          if (!existing || (event.updates?.length || 0) >= (existing.updates?.length || 0)) {
+            uniqueCoords.set(key, { ...event });
+          }
+        });
+
+        const formattedEvents = Array.from(uniqueCoords.values()).map((event: any) => ({
           id: event.id,
           title: event.title,
           summary: event.summary,
@@ -37,10 +51,14 @@ export default function Home() {
           reasoningChain: event.reasoning_chain,
           affectedAssets: event.affected_assets,
           sources: event.sources,
-          timestamp: event.event_timestamp || event.created_at,
-          createdAt: event.created_at,
-          assetType: event.asset_type
+          timestamp: event.timestamp || event.created_at || new Date().toISOString(),
+          createdAt: event.timestamp || event.created_at || new Date().toISOString(),
+          assetType: event.asset_type,
+          updates: event.updates
         }));
+        
+        // Sort formatted events so the newest or most updated appear at the top of the tracker
+        formattedEvents.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
         
         setLiveEvents(formattedEvents);
       }
