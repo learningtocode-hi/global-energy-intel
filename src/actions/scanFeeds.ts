@@ -27,7 +27,7 @@ export async function scanLiveFeeds(adminSecret?: string): Promise<ScanResult> {
   const result: ScanResult = { total: 0, ingested: 0, failed: 0, skipped: 0, events: [] };
 
   // Auth gate
-  if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+  if (!adminSecret || adminSecret.trim() !== (process.env.ADMIN_SECRET || "").trim()) {
     result.events.push({ title: 'UNAUTHORIZED', status: 'error', message: 'Invalid admin credentials.' });
     return result;
   }

@@ -8,7 +8,7 @@ import { zodResponseFormat } from "openai/helpers/zod";
 export async function processIntelligenceFeed(rawText: string, adminSecret?: string) {
   try {
     // Auth gate — block unauthorized access
-    if (!adminSecret || adminSecret !== process.env.ADMIN_SECRET) {
+    if (!adminSecret || adminSecret.trim() !== (process.env.ADMIN_SECRET || "").trim()) {
       return { success: false, error: "Unauthorized. Invalid admin credentials." };
     }
 
